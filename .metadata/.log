@@ -1,0 +1,27 @@
+!SESSION 2026-02-18 17:15:55.426 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=tr_TR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2026-02-18 17:16:05.498
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2026-02-18 17:16:05.501
+!MESSAGE Log4j2 initialized with config file C:\Users\zkdem\OneDrive\Masaüstü\stm32_projects\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2026-02-18 17:16:10.056
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-02-18 18:26:42.817
+!MESSAGE Indexed '1_Time_Configuration' (19 sources, 81 headers) in 3.54 sec: 4,436 declarations; 17,882 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.009%)
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-02-18 19:25:14.074
+!MESSAGE Indexed '2_GPIO_LED_Configuration' (19 sources, 81 headers) in 2.96 sec: 4,431 declarations; 17,856 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.009%)
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-02-18 19:41:45.127
+!MESSAGE Indexed '2.2_GPIO_Entry_Control' (19 sources, 81 headers) in 4.45 sec: 4,431 declarations; 17,856 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.009%)
+
+!ENTRY org.eclipse.cdt.core 1 0 2026-02-18 19:42:58.944
+!MESSAGE Indexed '2.2_GPIO_Input_Control_LED' (0 sources, 0 headers) in 0.001 sec: 0 declarations; 0 references; 0 unresolved inclusions; 0 syntax errors; 0 unresolved names (0%)

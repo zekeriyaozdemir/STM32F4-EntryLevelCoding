@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;2.2_GPIO_Entry_Control&apos; to &apos;2.2_GPIO_Input_Control_LED&apos;" description="Rename resource &apos;2.2_GPIO_Entry_Control&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/2.2_GPIO_Entry_Control" name="2.2_GPIO_Input_Control_LED" stamp="1771432978380" updateReferences="true"/>
+</session>
