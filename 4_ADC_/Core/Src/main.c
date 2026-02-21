@@ -41,15 +41,18 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef hadc2;
 
 /* USER CODE BEGIN PV */
 uint32_t analogVeriler;
+uint8_t analogValue = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_ADC1_Init(void);
+static void MX_ADC2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -65,6 +68,20 @@ uint32_t Read_ADC_Value(void)
 	HAL_ADC_Stop(&hadc1);
 
 	return adcValue;
+}
+
+uint8_t Read_ADC2_Value(void)
+{
+	uint8_t adc2Value = 0;
+	if (HAL_ADC_Start(&hadc2) == HAL_OK)
+	{
+		if (HAL_ADC_PoolForConversion(&hadc2, 1000) == HAL_OK)
+		{
+			adc2Value = (uint8_t) HAL_ADC_GetValue(&hadc2);
+		}
+		HAL_ADC_Stop(&hadc2);
+	}
+	return adc2Value;
 }
 /* USER CODE END 0 */
 
@@ -98,6 +115,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_ADC1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -110,6 +128,42 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  analogVeriler = Read_ADC_Value();
+	  analogValue = Read_ADC2_value();
+	  /* Analog deger 0-255 arası
+	   * 0-51 ------- tum ledler sonuk (RESET ALL)
+	   * 51-102 ----- PD12
+	   * 102-153 ---- PD12 PD13
+	   * 153-204 ---- PD12 PD13 PD14
+	   * 204-255 ---- tum ledler yanık (SET ALL)
+	   */
+
+	  if (analogValue >= 0 && analogValue < 51)
+	  {
+		  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
+	  }
+	  else if (analogValue >= 51 && analogValue < 102)
+	  {
+	      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+	      HAL_GPIO_WritePin(GPIOD, GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
+
+	  }
+	  else if (analogValue >= 102 && analogValue < 153)
+	  {
+	  	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN13, GPIO_PIN_SET);
+	  	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
+
+	  }
+	  else if (analogValue >= 153 && analogValue < 204)
+	  {
+	  	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14, GPIO_PIN_SET);
+	  	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_15, GPIO_PIN_RESET);
+
+	  }
+	  else
+	  {
+	  	  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_SET);
+
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -204,6 +258,58 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief ADC2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC2_Init(void)
+{
+
+  /* USER CODE BEGIN ADC2_Init 0 */
+
+  /* USER CODE END ADC2_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC2_Init 1 */
+
+  /* USER CODE END ADC2_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc2.Instance = ADC2;
+  hadc2.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc2.Init.Resolution = ADC_RESOLUTION_8B;
+  hadc2.Init.ScanConvMode = ENABLE;
+  hadc2.Init.ContinuousConvMode = ENABLE;
+  hadc2.Init.DiscontinuousConvMode = DISABLE;
+  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_112CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC2_Init 2 */
+
+  /* USER CODE END ADC2_Init 2 */
 
 }
 
