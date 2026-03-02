@@ -48,7 +48,8 @@ UART_HandleTypeDef huart2;
 char* firstMessage = "Hello World\r\n";
 //char receiveBuffer[10];
 uint8_t rxData[10];
-uint8_t newMessageFlag, rxDataIndex;
+uint8_t newMessageFlag;
+uint8_t rxDataIndex = 0;
 
 
 /* USER CODE END PV */
@@ -115,24 +116,28 @@ int main(void)
 	{
 		for(int i = 0; i < 10; i++)
 		{
-			if(rxData[i] == "\n")
+			if(rxData[i] == '\n')
 			{
 				rxDataIndex = 0;
-				if(rxData[0] == "L" && rxData[1] == "E" && rxData[2] == "D" && rxData[3] == " " && rxData[4] == "O" && rxData[5] == "N")
+
+				if(rxData[0] == 'L' && rxData[1] == 'E' && rxData[2] == 'D' && rxData[3] == '_' && rxData[4] == 'O' && rxData[5] == 'N')
 				{
 					HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
 				}
-				else if(rxData[0] == "L" && rxData[1] == "E" && rxData[2] == "D" && rxData[3] == " " && rxData[4] == "O" && rxData[5] == "F")
+
+				else if(rxData[0] == 'L' && rxData[1] == 'E' && rxData[2] == 'D' && rxData[3] == '_' && rxData[4] == 'O' && rxData[5] == 'F' && rxData[6] == 'F')
 				{
 					HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
 				}
+
 				for (int i = 0; i < 10; i++)
 				{
 					rxData[i] = 0;
 				}
+
+				newMessageFlag = 0;
 				break;
 			}
-			newMessageFlag = 0;
 		}
 	}
 

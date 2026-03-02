@@ -58,7 +58,8 @@
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 extern uint8_t rxData[10];
-extern newMessageFlag, rxDataIndex;
+extern newMessageFlag;
+extern uint8_t rxDataIndex = 0;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -206,7 +207,7 @@ void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
   rxData[rxDataIndex] = (uint8_t) (huart2.Instance->DR & (uint8_t) 0x00FF);
-  rxData ++;
+  rxDataIndex ++;
   newMessageFlag = 1;
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
