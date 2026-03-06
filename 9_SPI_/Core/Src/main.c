@@ -31,8 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define DS3231_WRITE_ADDRESS 0xD0   // Decimal 208 is WRITE address for DS3231. so Hexadecimal is D0.
-#define DS3231_READ_ADDRESS 0xD1    // Decimal 209 is READ address for DS3231. so, Hexadecimal is D1.
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -41,79 +40,52 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-I2C_HandleTypeDef hi2c1;
+SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
-typedef struct
-{
-	uint8_t second;
-	uint8_t minute;
-	uint8_t hour;
-	uint8_t dayOfWeek;
-	uint8_t dayOfMonth;
-	uint8_t month;
-	uint8_t year;
-} DS3231_Time_t;
-
-DS3231_Time_t	ds3231Time;
-
-
+uint16_t X_Axis, Y_Axis, Z_Axis;
+uint8_t X_Low, X_High, Y_Low, Y_High, Z_Low, Z_High;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t DEC_TO_BCD(uint8_t value)
+void SPI_Write_MEMS (uint8_t address, uint8_t data)
 {
-	return ((value / 10 * 16) + (value % 10));	// Basamaklara ayır, onlar basamağını sola 4 bit kaydır
-												// ve bir ler basamağını aynen ekle.
-}
+	uint8_t txData[2] = {0};
+	txData[0] = address;
+	txData[1] = data;
 
-uint8_t BCD_TO_DEC(uint8_t value)
-{
-	return ((value / 16 * 10) + (value % 16));  //  value/16 üst 4 biti alır, value%16 alt 4 biti alır
-}
-
-void DS3231_Set_Time(uint8_t second, uint8_t minute, uint8_t hour, uint8_t dayOfWeek, uint8_t dayOfMonth,
-		             uint8_t month, uint8_t year)
-{
-	uint8_t time_data[7] = {0};     // ilk değeri sıfır olsun.
-
-	time_data[0] = DEC_TO_BCD(second);
-	time_data[1] = DEC_TO_BCD(minute);
-	time_data[2] = DEC_TO_BCD(hour);
-	time_data[3] = DEC_TO_BCD(dayOfWeek);
-	time_data[4] = DEC_TO_BCD(dayOfMonth);
-	time_data[5] = DEC_TO_BCD(month);
-	time_data[6] = DEC_TO_BCD(year);
-
-	HAL_I2C_Mem_Write(&hi2c1, DS3231_WRITE_ADDRESS, 0x00, 1, time_data, 7, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(&hspi1, txData, 2, 1000);
+	HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_SET);
 
 }
-
-DS3231_Time_t DS3231_Get_Time(void)
+uint8_t SPI_Read_MEMS(uint8_t address)
 {
-	DS3231_Time_t dsTime = {0};
-	uint8_t receiveData[7] = {0};
-	if(HAL_I2C_Mem_Read(&hi2c1, DS3231_READ_ADDRESS, 0x00, 1, receiveData, 7, HAL_MAX_DELAY) == HAL_OK)
-	{
-		dsTime.second = BCD_TO_DEC(receiveData[0]);
-		dsTime.minute = BCD_TO_DEC(receiveData[1]);
-		dsTime.hour = BCD_TO_DEC(receiveData[2]);
-		dsTime.dayOfWeek = BCD_TO_DEC(receiveData[3]);
-		dsTime.dayOfMonth = BCD_TO_DEC(receiveData[4]);
-		dsTime.month = BCD_TO_DEC(receiveData[5]);
-		dsTime.year = BCD_TO_DEC(receiveData[6]) + 2000;
-	}
+	uint8_t txData[1] = {0} , rxData[1] = {0};
+	txData[0] = address | 0x80;                  //bu bir talimat, MSB HIGH yapılıyor.
 
-	return dsTime;
+	// 1 - CS pinini LOW yap
+	HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_RESET);
+
+	// 2 - okunacak verinin adresini gönder
+	HAL_SPI_Transmit(&hspi1, txData, 1, 1000);
+
+	// 3 - istenilen veriyi al
+	HAL_SPI_Receive(&hspi1, rxData, 1, 1000);
+
+	// 4 - CS pinini HIGH yap
+	HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_SET);
+
+	return rxData[0];
 }
 /* USER CODE END 0 */
 
@@ -146,9 +118,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-  DS3231_Set_Time(0, 0, 12, 3, 13, 6, 35);	// 12:00:00 _ 13/06/2035 _ Haftanın 3.günü.
+  uint8_t ctrlReg4;
+  SPI_Write_MEMS(0x20, 0x57);       // 0x20 control register 4 datasheet de var.
+  ctrlReg4 = SPI_Read_MEMS(0x20);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -158,9 +132,23 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	ds3231Time = DS3231_Get_Time();
-	HAL_Delay(3000);					// 3sn de bir değer oku.
 
+	// 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D  adresleri datasheet'de bulunan adres değerleridir. Gelişi güzel değildir.
+
+	X_Low = SPI_Read_MEMS(0x28);
+	X_High = SPI_Read_MEMS(0x29);
+	X_Axis = (X_High << 8 ) | X_Low;       // 8 birim sola ötele ve x_low'u ekle
+
+	Y_Low = SPI_Read_MEMS(0x2A);
+	Y_High = SPI_Read_MEMS(0x2B);
+	Y_Axis = (Y_High << 8 ) | Y_Low;
+
+	Z_Low = SPI_Read_MEMS(0x2C);
+	Z_High = SPI_Read_MEMS(0x2D);
+	Z_Axis = (Z_High << 8 ) | Z_Low;
+
+	HAL_Delay(5000);						// yani kartı 3D hareket ettirince X_Axis, Y_Axis ve Z_Axis değerlerinin
+											// değiştiği görülür.
   }
   /* USER CODE END 3 */
 }
@@ -207,36 +195,40 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief I2C1 Initialization Function
+  * @brief SPI1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_I2C1_Init(void)
+static void MX_SPI1_Init(void)
 {
 
-  /* USER CODE BEGIN I2C1_Init 0 */
+  /* USER CODE BEGIN SPI1_Init 0 */
 
-  /* USER CODE END I2C1_Init 0 */
+  /* USER CODE END SPI1_Init 0 */
 
-  /* USER CODE BEGIN I2C1_Init 1 */
+  /* USER CODE BEGIN SPI1_Init 1 */
 
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 400000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN I2C1_Init 2 */
+  /* USER CODE BEGIN SPI1_Init 2 */
 
-  /* USER CODE END I2C1_Init 2 */
+  /* USER CODE END SPI1_Init 2 */
 
 }
 
@@ -247,12 +239,24 @@ static void MX_I2C1_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SPI_CS_GPIO_Port, SPI_CS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin : SPI_CS_Pin */
+  GPIO_InitStruct.Pin = SPI_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SPI_CS_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
